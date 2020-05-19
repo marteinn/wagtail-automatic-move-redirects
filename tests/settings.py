@@ -84,3 +84,4 @@ ROOT_URLCONF = 'tests.urls'
 
 WAGTAIL_SITE_NAME = "Test Site",
 SITE_ID = 1
+STATIC_URL = "/static/"

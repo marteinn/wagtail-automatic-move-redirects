@@ -1,10 +1,10 @@
-# wagtail-automatic-redirects
+# wagtail-automatic-move-redirects
 
-Package to help with Wagtail URL redirects. Wagtail comes with a [redirects app](https://docs.wagtail.io/en/stable/editor_manual/managing_redirects.html) which helps to manually create redirects in Wagtail admin. This helper app helps to automatically create redirects when the URL of Page is changed. Redirects will be created for the page and all its child pages automatically. This project uses the page revisions and publish signal to automate the redirects creation process.
+Creates a automatic redirect every time a published page is moved. Please note that this is an experiment, for production, use [wagtail-automatic-redirects](https://github.com/themotleyfool/wagtail-automatic-redirects), it covers a wider range of usages.
 
 ## Installation
 
-    pip install wagtail-automatic-redirects
+    install the package through the pip git feature
 
 Add the package to your project's settings
 
@@ -28,6 +28,11 @@ MIDDLEWARE = [
     # ... Other middlewares
 ]
 ```
+
+## Credits
+
+This is library started of as a fork to the great [wagtail-automatic-redirects](https://github.com/themotleyfool/wagtail-automatic-redirects) 
+
 
 ## License
 

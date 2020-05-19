@@ -1,97 +1,157 @@
 import pytest
+from django.urls import reverse
+from django.test import TestCase
+from django.contrib.auth.models import User
+from wagtail.core.models import Site
+from wagtail.contrib.redirects.models import Redirect
+from wagtail.tests.utils import WagtailTestUtils
 
 from tests.testapp import factories
 
 
-def publish_page(page):
+def unpublish_page(page):
     revision = page.save_revision()
-    revision.publish()
+    revision.unpublish()
     return page
 
 
-@pytest.mark.django_db
-def test_index_page_slug_change(client, site):
-    test_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
-        parent=site.root_page,
-        title='Automatic redirects test index page',
-        slug='automatic-redirects-test-index-page',
-        subtitle='Test subtitle',
-        body='<p>Test body</p>',
-    )
+class TestPageMove(TestCase, WagtailTestUtils):
+    def setUp(self):
+        self.site = Site.objects.get(is_default_site=True)
+        self.user = User.objects.create_superuser(
+            'john', 'lennon@thebeatles.com', 'johnpassword'
+        )
 
-    assert site.root_page.get_children().count() == 1
-    assert test_index_page.slug == 'automatic-redirects-test-index-page'
-    assert test_index_page.body == '<p>Test body</p>'
+    def test_move_creates_redirects(self):
+        test_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=self.site.root_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
 
-    response = client.get(test_index_page.url)
-    assert response.status_code == 200
+        test_sub_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=test_index_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
 
-    # Change slug
-    old_url = test_index_page.url
-    test_index_page.slug = 'test-index-page'
-    publish_page(test_index_page)
+        test_page1 = factories.AutomaticRedirectsTestPageFactory(
+            parent=test_sub_index_page,
+            title='Test Page 1',
+            slug='test-page-1'
+        )
 
-    # New url will give 200
-    response = client.get('/test-index-page/')
-    assert response.status_code == 200
+        self.client.login(
+            username=self.user.username, password='johnpassword'
+        ) == True
 
-    # Old url will give 301 Permanent Redirect
-    response = client.get(old_url)
-    assert response.status_code == 301
+        resp = self.client.post(
+            reverse('wagtailadmin_pages:move_confirm', args=(
+                test_page1.id,
+                test_index_page.id)
+            ),
+        )
 
-    # Follow the old url to get 200
-    response = client.get(old_url, follow=True)
-    assert response.status_code == 200
+        assert Redirect.objects.count() == 1
 
+        response = self.client.get('/index-page/test-page-1/')
+        assert response.status_code == 200
 
-@pytest.mark.django_db
-def test_index_page_slug_change_create_redirects_child_pages(client, site):
-    test_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
-        parent=site.root_page,
-        title='Automatic redirects test index page',
-        slug='index-page',
-        subtitle='Test subtitle',
-        body='<p>Test body</p>',
-    )
+        response = self.client.get('/index-page/index-page/test-page-1/')
+        assert response.status_code == 301
 
-    test_page1 = factories.AutomaticRedirectsTestPageFactory(
-        parent=test_index_page,
-        title='Test Page 1',
-        slug='test-page-1'
-    )
-    test_page2 = factories.AutomaticRedirectsTestPageFactory(
-        parent=test_index_page,
-        title='Test Page 2',
-        slug='test-page-2'
-    )
+    def test_moving_parent_created_redirect_for_child_as_well(self):
+        test_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=self.site.root_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
 
-    response = client.get(test_page1.url)
-    assert response.status_code == 200
+        test_sub_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=test_index_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
 
-    response = client.get(test_page2.url)
-    assert response.status_code == 200
+        test_page1 = factories.AutomaticRedirectsTestPageFactory(
+            parent=test_sub_index_page,
+            title='Test Page 1',
+            slug='test-page-1'
+        )
 
-    # Change slug
-    old_url = test_index_page.url
-    test_index_page.slug = 'index-page-new'
-    publish_page(test_index_page)
+        test_child_page1 = factories.AutomaticRedirectsTestPageFactory(
+            parent=test_page1,
+            title='Test Child Page 1',
+            slug='test-child-page-1'
+        )
 
-    # New url will give 200
-    response = client.get('/index-page-new/')
-    assert response.status_code == 200
+        self.client.login(
+            username=self.user.username, password='johnpassword'
+        ) == True
 
-    response = client.get('/index-page-new/test-page-1/')
-    assert response.status_code == 200
+        resp = self.client.post(
+            reverse('wagtailadmin_pages:move_confirm', args=(
+                test_page1.id,
+                test_index_page.id)
+            ),
+        )
 
-    response = client.get('/index-page-new/test-page-2/')
-    assert response.status_code == 200
+        assert Redirect.objects.count() == 2
 
-    # Old urls will give 301 Permanent Redirect
-    response = client.get(old_url)
-    assert response.status_code == 301
+        response = self.client.get(
+            '/index-page/test-page-1/test-child-page-1/'
+        )
+        assert response.status_code == 200
 
-    response = client.get('/index-page/test-page-1/')
-    assert response.status_code == 301
+        response = self.client.get(
+            '/index-page/index-page/test-page-1/test-child-page-1/'
+        )
+        assert response.status_code == 301
 
-    response = client.get('/index-page/test-page-2/')
-    assert response.status_code == 301
+    def test_only_published_pages_gets_redirected(self):
+        test_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=self.site.root_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
+
+        assert test_index_page.live == True
+
+        test_sub_index_page = factories.AutomaticRedirectsTestIndexPageFactory(
+            parent=test_index_page,
+            title='Automatic redirects test index page',
+            slug='index-page',
+            subtitle='Test subtitle',
+            body='<p>Test body</p>',
+        )
+
+        test_page1 = factories.AutomaticRedirectsTestPageFactory(
+            parent=test_sub_index_page,
+            title='Test Page 1',
+            slug='test-page-1'
+        )
+
+        test_page1.unpublish()
+
+        self.client.login(
+            username=self.user.username, password='johnpassword'
+        ) == True
+
+        resp = self.client.post(
+            reverse('wagtailadmin_pages:move_confirm', args=(
+                test_page1.id,
+                test_index_page.id)
+            ),
+        )
+
+        assert Redirect.objects.count() == 0
