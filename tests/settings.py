@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # App Under test
-    'wagtail_automatic_redirects',
+    'wagtail_automatic_move_redirects',
     # Test app
     'tests.testapp'
 ]

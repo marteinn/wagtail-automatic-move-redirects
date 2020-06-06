@@ -1,39 +1,35 @@
 # wagtail-automatic-move-redirects
 
-Creates a automatic redirect every time a published page is moved. Please note that this is an experiment, for production, use [wagtail-automatic-redirects](https://github.com/themotleyfool/wagtail-automatic-redirects), it covers a wider range of usages.
+This package does one thing, it makes sure a redirect is created every time a published page is moved in the Wagtail admin.
 
 ## Installation
 
-    install the package through the pip git feature
+1. First make sure you activate Wagtail redirects, you can do this by following this [official guide](https://docs.wagtail.io/en/latest/reference/contrib/redirects.html#installation)
 
-Add the package to your project's settings
+2. Then install this package by running
+
+```
+python -m pip install git+https://github.com/marteinn/wagtail-automatic-move-redirects
+```
+
+3. Add the package to your project's settings
 
 ```python
 INSTALLED_APPS = [
     # ... Other apps
-    "wagtail_automatic_redirects",
+    "wagtail_automatic_move_redirects",
     "wagtail.contrib.redirects",
     # ... Other apps
 ]
 ```
 
-Make sure the `INSTALLED_APPS` setting include `"wagtail.contrib.redirects",` app from Wagtail.
-
-Also, check the `MIDDLEWARE` setting include
-
-```python
-MIDDLEWARE = [
-    # ... Other middlewares
-    "wagtail.contrib.redirects.middleware.RedirectMiddleware",
-    # ... Other middlewares
-]
-```
+4. Done!
 
 ## Credits
 
-This is library started of as a fork to the great [wagtail-automatic-redirects](https://github.com/themotleyfool/wagtail-automatic-redirects) 
+This is library originated as a fork of [wagtail-automatic-redirects](https://github.com/themotleyfool/wagtail-automatic-redirects).
 
 
 ## License
 
-[BSD](https://github.com/themotleyfool/wagtail-automatic-redirects/blob/master/LICENSE)
+[BSD](https://github.com/themotleyfool/wagtail-automatic-move-redirects/blob/master/LICENSE)
